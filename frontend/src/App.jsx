@@ -4,10 +4,13 @@ import {
   Box,
   Toolbar,
   Typography,
-  Tabs,
-  Tab,
   Container,
   Chip,
+  List,
+  ListItemButton,
+  ListItemText,
+  ListSubheader,
+  Divider,
 } from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -228,79 +231,158 @@ export default function App() {
     });
   }, [jobHistory, search]);
 
+  const recentJobs = jobHistory.slice(0, 10);
+
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary' }}>
-      <AppBar position="static" color="transparent" elevation={0}>
-        <Toolbar>
-          <DescriptionIcon sx={{ mr: 1 }} />
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" component="div">
-              Paper Translator
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              고품질 레이아웃 보존 영→한 논문 번역
-            </Typography>
-          </Box>
-          <Chip icon={<HistoryIcon />} label="v1.0.0" variant="outlined" size="small" />
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ pt: 3, pb: 4 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tab} onChange={(_, value) => setTab(value)} aria-label="메인/대시보드 탭">
-            <Tab label="Main" />
-            <Tab label="Dashboard" />
-          </Tabs>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        color: 'text.primary',
+        display: 'flex',
+      }}
+    >
+      <Box
+        component="nav"
+        sx={{
+          width: 260,
+          flexShrink: 0,
+          borderRight: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          p: 2,
+          gap: 2,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <DescriptionIcon fontSize="small" />
+          <Typography variant="subtitle1">Paper Translator</Typography>
         </Box>
+        <Chip icon={<HistoryIcon />} label="v1.0.0" size="small" variant="outlined" sx={{ mb: 1 }} />
 
-        {tab === 0 && (
-          <MainPage
-            file={file}
-            jobId={jobId}
-            status={status}
-            logs={logs}
-            isUploading={isUploading}
-            isPolling={isPolling}
-            pageProgress={pageProgress}
-            canDownload={canDownload}
-            statusColor={statusColor}
-            onFileChange={handleFileChange}
-            onUpload={handleUpload}
-            onFetchStatus={fetchStatus}
-            onStartPolling={() => setIsPolling(true)}
-            onStopPolling={stopPolling}
-            onDownload={() => {
-              const id = jobId.trim();
-              if (!id) {
-                alert('job_id를 입력해주세요.');
-                return;
-              }
-              const url = `/api/download/${encodeURIComponent(id)}`;
-              appendLog(`다운로드 요청: ${url}`);
-              window.open(url, '_blank');
-            }}
-            onJobIdChange={setJobId}
-          />
-        )}
+        <List
+          dense
+          subheader={
+            <ListSubheader component="div" disableSticky sx={{ bgcolor: 'transparent', px: 0 }}>
+              페이지
+            </ListSubheader>
+          }
+          sx={{ px: 0 }}
+        >
+          <ListItemButton selected={tab === 0} onClick={() => setTab(0)}>
+            <ListItemText primary="Main" />
+          </ListItemButton>
+          <ListItemButton selected={tab === 1} onClick={() => setTab(1)}>
+            <ListItemText primary="Dashboard" />
+          </ListItemButton>
+        </List>
 
-        {tab === 1 && (
-          <DashboardPage
-            search={search}
-            onSearchChange={setSearch}
-            jobs={filteredJobs}
-            onOpenJob={(job) => {
-              setJobId(job.jobId);
-              setTab(0);
-              appendLog(`Dashboard에서 job_id=${job.jobId} 선택`);
-            }}
-            onRefreshJob={(job) => {
-              setJobId(job.jobId);
-              setTab(0);
-              fetchStatus(job.jobId);
-            }}
-          />
-        )}
-      </Container>
+        <Divider sx={{ my: 1 }} />
+
+        <List
+          dense
+          subheader={
+            <ListSubheader component="div" disableSticky sx={{ bgcolor: 'transparent', px: 0 }}>
+              최근 Job
+            </ListSubheader>
+          }
+          sx={{ px: 0, flexGrow: 1, overflow: 'auto' }}
+        >
+          {recentJobs.length === 0 && (
+            <ListItemText
+              primary="기록 없음"
+              primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+              sx={{ px: 2, py: 1 }}
+            />
+          )}
+          {recentJobs.map((job) => (
+            <ListItemButton
+              key={job.jobId}
+              onClick={() => {
+                setJobId(job.jobId);
+                setTab(0);
+                appendLog(`Sidebar에서 job_id=${job.jobId} 선택`);
+              }}
+            >
+              <ListItemText
+                primary={job.fileName || job.jobId}
+                secondary={job.lastStatus || '상태 알 수 없음'}
+                primaryTypographyProps={{ noWrap: true }}
+                secondaryTypographyProps={{ variant: 'caption', noWrap: true }}
+              />
+            </ListItemButton>
+          ))}
+        </List>
+      </Box>
+
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <AppBar position="static" color="transparent" elevation={0}>
+          <Toolbar>
+            <DescriptionIcon sx={{ mr: 1 }} />
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography variant="h6" component="div">
+                Paper Translator
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                고품질 레이아웃 보존 영→한 논문 번역
+              </Typography>
+            </Box>
+            <Chip icon={<HistoryIcon />} label="v1.0.0" variant="outlined" size="small" />
+          </Toolbar>
+        </AppBar>
+
+        <Container maxWidth="lg" sx={{ pt: 3, pb: 4 }}>
+          {tab === 0 && (
+            <MainPage
+              file={file}
+              jobId={jobId}
+              status={status}
+              logs={logs}
+              isUploading={isUploading}
+              isPolling={isPolling}
+              pageProgress={pageProgress}
+              canDownload={canDownload}
+              statusColor={statusColor}
+              onFileChange={handleFileChange}
+              onUpload={handleUpload}
+              onFetchStatus={fetchStatus}
+              onStartPolling={() => setIsPolling(true)}
+              onStopPolling={stopPolling}
+              onDownload={() => {
+                const id = jobId.trim();
+                if (!id) {
+                  alert('job_id를 입력해주세요.');
+                  return;
+                }
+                const url = `/api/download/${encodeURIComponent(id)}`;
+                appendLog(`다운로드 요청: ${url}`);
+                window.open(url, '_blank');
+              }}
+              onJobIdChange={setJobId}
+            />
+          )}
+
+          {tab === 1 && (
+            <DashboardPage
+              search={search}
+              onSearchChange={setSearch}
+              jobs={filteredJobs}
+              onOpenJob={(job) => {
+                setJobId(job.jobId);
+                setTab(0);
+                appendLog(`Dashboard에서 job_id=${job.jobId} 선택`);
+              }}
+              onRefreshJob={(job) => {
+                setJobId(job.jobId);
+                setTab(0);
+                fetchStatus(job.jobId);
+              }}
+            />
+          )}
+        </Container>
+      </Box>
     </Box>
   );
 }
