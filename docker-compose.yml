@@ -39,6 +39,14 @@ services:
     ports:
       - "6379:6379"
 
+  frontend:
+    build: ./frontend
+    container_name: paper-translator-frontend
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
 volumes:
   paper-data:
   redis-data:
