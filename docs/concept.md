@@ -59,9 +59,12 @@
    * **Storage**
 
      * 원본/번역 PDF 임시 저장 (local fs or S3)
-   * **Job Queue**
+   * **Job Repository (RDB)**
 
-     * Celery/RQ + Redis 로 비동기 처리 (긴 논문 대비)
+     * Job 메타데이터/상태를 RDB(PostgreSQL 등)에 저장
+   * **Job Queue (RabbitMQ)**
+
+     * Celery + RabbitMQ 조합으로 비동기 처리 (긴 논문 대비)
 
 ---
 
@@ -115,8 +118,8 @@
 2. 서버:
 
    * 파일을 `/data/original/{job_id}.pdf` 같은 경로에 저장
-   * DB or Redis에 job 레코드 생성 (`PENDING`)
-   * Celery/RQ로 **비동기 작업 enqueue**
+   * RDB에 job 레코드 생성 (`PENDING`)
+   * Celery + RabbitMQ로 **비동기 작업 enqueue**
 
      * `translate_paper(job_id)` 호출
    * 응답: `{job_id: "uuid-xxx"}`

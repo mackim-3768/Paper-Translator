@@ -4,7 +4,7 @@
 
 - 표준 에러 응답 포맷 및 로깅 전략
 - 요청/Job 단위 Correlation ID 설계
-- 환경변수/설정 관리 구조 (LLM 키, Redis, DB, S3 등)
+- 환경변수/설정 관리 구조 (LLM 키, DB, RabbitMQ, S3 등)
 - Dev/Prod 분리 전략 및 설정 프로필
 
 을 다룹니다.
@@ -131,11 +131,11 @@
   - `OPENAI_API_KEY`
   - `LLM_MODEL` — 예: `gpt-4.1-mini`
 
-- 스토리지/DB/Redis
+- 스토리지/DB/RabbitMQ
   - `STORAGE_BACKEND` — `local`, `s3` 등
   - `S3_BUCKET`, `S3_REGION` 등 (해당 시)
-  - `REDIS_URL`
   - `DB_URL` (Job/메타데이터 보관용)
+  - `RABBITMQ_URL` (비동기 Job 큐용)
 
 - 운영 정책
   - `MAX_UPLOAD_SIZE_MB`

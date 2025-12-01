@@ -56,8 +56,8 @@
   - `PDFGenerator` (WeasyPrint/ReportLab 등)
   - `LLMClient` (OpenAI 등 LLM 래퍼)
   - `Storage` (원본/번역 파일 및 중간 산출물 저장)
-  - `JobRepository` (Job 상태 저장/조회)
-  - `JobQueue` (Celery/RQ 기반 비동기 처리)
+  - `JobRepository` (RDB 기반 Job 상태 저장/조회, 예: PostgreSQL)
+  - `JobQueue` (Celery + RabbitMQ 기반 비동기 처리)
 
 ### 2.2 의존성 방향
 
