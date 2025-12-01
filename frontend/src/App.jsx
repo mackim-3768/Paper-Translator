@@ -17,30 +17,6 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import { MainPage } from './pages/MainPage.jsx';
 import { DashboardPage } from './pages/DashboardPage.jsx';
 
-const LOCAL_STORAGE_KEY = 'paper-translator-jobs';
-
-function loadJobHistory() {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
-  } catch {
-    return [];
-  }
-}
-
-function saveJobHistory(list) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    // ignore
-  }
-}
-
 export default function App() {
   const [tab, setTab] = useState(0);
   const [file, setFile] = useState(null);
@@ -50,7 +26,7 @@ export default function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [pageProgress, setPageProgress] = useState(null);
-  const [jobHistory, setJobHistory] = useState(() => loadJobHistory());
+  const [jobHistory, setJobHistory] = useState([]);
   const [search, setSearch] = useState('');
 
   const canDownload = useMemo(() => status === 'COMPLETED', [status]);
@@ -60,26 +36,19 @@ export default function App() {
     setLogs((prev) => [...prev, `[${ts}] ${msg}`]);
   };
 
-  const updateJobHistory = (id, updater) => {
-    if (!id) return;
-    setJobHistory((prev) => {
-      const now = Date.now();
-      const next = [...prev];
-      const index = next.findIndex((j) => j.jobId === id);
-      const base = index >= 0 ? next[index] : { jobId: id, createdAt: now };
-      const updated = {
-        ...base,
-        ...updater,
-        lastUpdatedAt: updater.lastUpdatedAt ?? now,
-      };
-      if (index >= 0) {
-        next[index] = updated;
-      } else {
-        next.unshift(updated);
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch('/api/jobs');
+      if (!res.ok) {
+        throw new Error('Job 목록 조회 실패');
       }
-      saveJobHistory(next);
-      return next;
-    });
+      const data = await res.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      setJobHistory(items);
+    } catch (err) {
+      console.error(err);
+      appendLog(`Job 목록 조회 오류: ${err.message || String(err)}`);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -120,10 +89,10 @@ export default function App() {
       setJobId(newJobId);
       setStatus('PENDING');
       setPageProgress(null);
-      updateJobHistory(newJobId, { fileName: file.name, lastStatus: 'PENDING' });
       appendLog(`업로드 완료, job_id=${newJobId}`);
       appendLog('자동 상태 폴링을 시작합니다.');
       setIsPolling(true);
+      fetchJobs();
     } catch (err) {
       console.error(err);
       appendLog(`업로드 오류: ${err.message || String(err)}`);
@@ -174,7 +143,7 @@ export default function App() {
       }
 
       appendLog(`상태: ${JSON.stringify(data)}`);
-      updateJobHistory(id, { lastStatus: s });
+      fetchJobs();
       return s;
     } catch (err) {
       console.error(err);
@@ -230,6 +199,11 @@ export default function App() {
       );
     });
   }, [jobHistory, search]);
+
+  useEffect(() => {
+    fetchJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const recentJobs = jobHistory.slice(0, 10);
 
