@@ -5,3 +5,6 @@ redis
 pydantic
 pydantic-settings
 python-multipart
+openai
+pymupdf
+reportlab
