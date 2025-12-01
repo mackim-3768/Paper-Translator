@@ -1,18 +1,19 @@
 from pathlib import Path
 from uuid import uuid4
+from typing import Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 
 from app.config import settings
-from app.infra.job_store import JobStore
+from app.infra.job_repository import JobRepository
 from app.infra.jobs import translate_paper
 
 
 app = FastAPI(title="Paper Translator API")
 
 BASE_DATA_DIR = Path("/data")
-job_store = JobStore(settings.redis_url)
+job_store = JobRepository(settings.db_url)
 
 
 @app.post("/upload")
@@ -30,7 +31,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     with dest_path.open("wb") as f:
         f.write(contents)
 
-    job_store.create_job(job_id)
+    job_store.create_job(job_id, file_name=file.filename)
     translate_paper.delay(job_id)
 
     return {"job_id": job_id}
@@ -43,6 +44,18 @@ def status(job_id: str):
         raise HTTPException(status_code=404, detail="존재하지 않는 job_id")
 
     return {"job_id": job_id, "status": current}
+
+
+@app.get("/jobs")
+def list_jobs(q: Optional[str] = None, limit: int = 50, offset: int = 0):
+    """Job 목록 조회 (Dashboard/RDB 기반).
+
+    - q: jobId / 파일명 / 상태에 대한 간단한 검색 키워드
+    - limit/offset: 페이징
+    """
+
+    items = job_store.list_jobs(limit=limit, offset=offset, search=q)
+    return {"items": items}
 
 
 @app.get("/download/{job_id}")

@@ -3,17 +3,17 @@ from pathlib import Path
 from celery import Celery
 
 from app.config import settings
-from app.infra.job_store import JobStore
+from app.infra.job_repository import JobRepository
 from app.services.translation_service import TranslationService
 
 
 celery_app = Celery(
     "paper_translator",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
+    broker=settings.rabbitmq_url,
+    backend="rpc://",
 )
 
-job_store = JobStore(settings.redis_url)
+job_store = JobRepository(settings.db_url)
 translation_service = TranslationService()
 
 

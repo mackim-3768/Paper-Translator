@@ -3,7 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = "dev"
-    redis_url: str = "redis://redis:6379/0"
+    rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672//"
+    db_url: str = "postgresql://paper:paper@postgres:5432/paper"
     llm_model: str = "gpt-4.1-mini"
 
     model_config = SettingsConfigDict(
