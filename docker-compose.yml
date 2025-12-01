@@ -9,6 +9,8 @@ services:
       - APP_ENV=dev
       - APP_REDIS_URL=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "8000:8000"
     volumes:
       - .:/code
       - paper-data:/data
