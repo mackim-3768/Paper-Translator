@@ -39,7 +39,8 @@ services:
       - .:/code
       - paper-data:/data
     depends_on:
-      - redis
+      - rabbitmq
+      - postgres
 
   rabbitmq:
     image: rabbitmq:3-management

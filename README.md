@@ -49,6 +49,15 @@ docker-compose ps
 - API 문서
   - `http://localhost:8000/docs` (FastAPI Swagger UI)
 
+### 4. Job 만료(TTL) 및 정리 정책
+
+- Job은 생성 시점 기준 `JOB_TTL_DAYS`(기본 7일) 이후 만료됩니다.
+  - 만료된 Job은 `/jobs?statusFilter=expired`에서 조회할 수 있습니다.
+  - Dashboard UI는 기본적으로 `statusFilter=all/active/expired`를 사용해 서버 측에서 필터링합니다.
+- Celery Task `cleanup_expired_jobs`가 주기적으로 실행되어, 만료된 Job의
+  원본/번역 PDF 파일을 로컬 스토리지(`/data` 등)에서 정리합니다.
+- TTL 일수와 스토리지 경로는 환경변수(`APP_JOB_TTL_DAYS`, `APP_DATA_DIR`, `APP_STORAGE_BACKEND` 등)로 조정할 수 있습니다.
+
 ## 추가 문서
 
 설계/아키텍처/운영상세는 다음 문서를 참고하세요.
