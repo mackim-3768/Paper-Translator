@@ -37,6 +37,15 @@ class TranslationService:
 
         self._generator.generate(translated_paragraphs, output_pdf)
 
+    def get_page_count(self, input_pdf: Path | str) -> int:
+        """PDF 페이지 수를 반환하는 헬퍼.
+
+        메타데이터(page_count) 저장용으로 사용된다.
+        """
+
+        pages = self._parser.extract_pages(input_pdf)
+        return len(pages)
+
     def _split_into_chunks(self, text: str) -> List[str]:
         chunks: List[str] = []
         current = []
