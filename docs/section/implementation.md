@@ -147,6 +147,21 @@
 - 애플리케이션 시작 시 Settings 인스턴스를 한 번 생성하고, DI(의존성 주입) 또는 전역 설정 객체로 공유.
 - 테스트에서는 별도 `.env.test` 또는 환경 변수 override를 통해 설정.
 
+### 4.4 스토리지 및 TTL 설정 구체화
+
+- Settings 예시 (실제 코드 기준)
+  - `data_dir` — 원본/번역 PDF를 저장하는 루트 디렉터리 (예: `/data`).
+  - `storage_backend` — 스토리지 구현 선택 (`local`, 향후 `s3` 등 확장).
+  - `job_ttl_days` — Job 생성 시점 기준 기본 보관 일수 (예: 7일).
+- 환경변수 매핑 예시 (env prefix 사용 시)
+  - `APP_DATA_DIR`, `APP_STORAGE_BACKEND`, `APP_JOB_TTL_DAYS` 등으로 설정 가능.
+- 동작 요약
+  - `/upload` 처리 시 Job 생성과 함께 `expires_at = created_at + job_ttl_days`를 설정.
+  - Celery Task `cleanup_expired_jobs`가 `expires_at`이 지난 Job의
+    원본/번역 PDF를 `Storage`를 통해 정리.
+  - `/jobs` API는 `statusFilter` 값에 따라 `expires_at`을 기준으로
+    active/expired Job을 서버 측에서 필터링.
+
 ---
 
 ## 5. Dev/Prod 분리 및 설정 프로필

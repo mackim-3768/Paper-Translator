@@ -191,7 +191,50 @@
 
 ---
 
-## 8. 요약
+## 8. Job TTL 및 정리 정책
+
+- Job 및 관련 PDF 파일의 보관 기간과 정리 방식에 대한 정책을 정의합니다.
+
+### 8.1 TTL 기본 정책
+
+- 모든 Job은 생성 시점에 `expires_at` 타임스탬프를 가집니다.
+  - `expires_at = created_at + JOB_TTL_DAYS` (초 단위로 계산).
+  - 기본값: `JOB_TTL_DAYS = 7` (환경 변수/Settings에서 조정 가능).
+- `expires_at`은 원본/번역 PDF의 **보관 기한**을 의미합니다.
+  - Job 메타데이터 레코드는 용량/감사 목적에 따라 더 길게 보관할 수 있습니다.
+
+### 8.2 만료 Job 정의
+
+- `expires_at`이 현재 시각 이하인 Job은 **만료(expired)** 로 간주합니다.
+- `/jobs` API에서
+  - `statusFilter=active` : `expires_at`이 없거나, 현재 시각보다 큰 Job만 조회.
+  - `statusFilter=expired` : `expires_at`이 현재 시각 이하인 Job만 조회.
+  - `statusFilter=all` : TTL과 무관하게 전체 조회.
+
+### 8.3 정리(청소) 작업
+
+- Celery Task `cleanup_expired_jobs`를 주기적으로 실행합니다.
+  - 내부적으로 `JobRepository.get_expired_jobs()`를 사용해 만료 Job 목록을 조회.
+  - `Storage` 추상화를 통해 각 Job의 원본/번역 PDF 파일을 삭제.
+  - 반환값은 실제로 정리한 Job 개수입니다.
+- 스케줄링 전략 예시
+  - Celery Beat에서 1시간마다 또는 하루 1회 실행.
+  - 혹은 Kubernetes CronJob/외부 스케줄러에서 HTTP/CLI로 주기적으로 호출.
+- 주기 설정 기준
+  - 디스크 용량 여유에 따라 더 자주 또는 덜 자주 실행 가능.
+  - 운영 환경에서는 최소 하루 1회 이상 실행을 권장합니다.
+
+### 8.4 data_dir 및 스토리지 경로
+
+- `data_dir` 설정값(예: `/data`)을 기준으로 스토리지 구조를 구성합니다.
+  - 예: `${data_dir}/original/{job_id}.pdf`, `${data_dir}/translated/{job_id}.pdf`
+- 운영 환경에서는
+  - 충분한 디스크 용량/IO 성능이 보장되는 볼륨에 `data_dir`를 마운트.
+  - 백업 정책 및 보안 정책(암호화, 접근 제어)을 별도로 정의.
+
+---
+
+## 9. 요약
 
 - 본 문서는 논문 번역 서비스의 성능/운영 관점에서
   - 업로드 용량/페이지 제한,
@@ -199,7 +242,8 @@
   - 큐/동시성/Rate Limit 정책,
   - 실패/재시도/일관성 전략,
   - 모니터링/알림,
-  - 용량 계획 및 스케일링 전략
+  - 용량 계획 및 스케일링 전략,
+  - Job TTL 및 정리 정책
   을 정의합니다.
 
 이 정의를 기반으로 운영 환경에서의 안정성과 비용 효율성을 확보하는 것을 목표로 합니다.
