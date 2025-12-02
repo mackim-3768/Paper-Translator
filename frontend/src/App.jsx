@@ -26,8 +26,10 @@ export default function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [pageProgress, setPageProgress] = useState(null);
+  const [statusMeta, setStatusMeta] = useState({ pageCount: null, errorCode: null, expiresAt: null });
   const [jobHistory, setJobHistory] = useState([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const canDownload = useMemo(() => status === 'COMPLETED', [status]);
 
@@ -38,7 +40,17 @@ export default function App() {
 
   const fetchJobs = async () => {
     try {
-      const res = await fetch('/api/jobs');
+      const params = new URLSearchParams();
+      const q = search.trim();
+      if (q) {
+        params.set('q', q);
+      }
+      if (statusFilter && statusFilter !== 'all') {
+        params.set('statusFilter', statusFilter);
+      }
+
+      const qs = params.toString();
+      const res = await fetch(`/api/jobs${qs ? `?${qs}` : ''}`);
       if (!res.ok) {
         throw new Error('Job 목록 조회 실패');
       }
@@ -66,6 +78,7 @@ export default function App() {
     }
     setIsUploading(true);
     setStatus('업로드 중');
+    setStatusMeta({ pageCount: null, errorCode: null, expiresAt: null });
     appendLog(`업로드 시작: ${file.name}`);
     try {
       const form = new FormData();
@@ -142,6 +155,11 @@ export default function App() {
         });
       }
 
+      const pageCount = data.pageCount ?? null;
+      const errorCode = data.errorCode ?? null;
+      const expiresAt = typeof data.expiresAt === 'number' ? data.expiresAt : null;
+      setStatusMeta({ pageCount, errorCode, expiresAt });
+
       appendLog(`상태: ${JSON.stringify(data)}`);
       fetchJobs();
       return s;
@@ -149,6 +167,7 @@ export default function App() {
       console.error(err);
       appendLog(`상태 조회 오류: ${err.message || String(err)}`);
       setStatus('ERROR');
+      setStatusMeta({ pageCount: null, errorCode: null, expiresAt: null });
       alert(err.message || '상태 조회 중 오류가 발생했습니다.');
       return null;
     }
@@ -188,22 +207,12 @@ export default function App() {
       ? 'info'
       : 'default';
 
-  const filteredJobs = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return jobHistory;
-    return jobHistory.filter((job) => {
-      return (
-        job.jobId.toLowerCase().includes(q) ||
-        (job.fileName && job.fileName.toLowerCase().includes(q)) ||
-        (job.lastStatus && job.lastStatus.toLowerCase().includes(q))
-      );
-    });
-  }, [jobHistory, search]);
+  const filteredJobs = jobHistory;
 
   useEffect(() => {
     fetchJobs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [search, statusFilter]);
 
   const recentJobs = jobHistory.slice(0, 10);
 
@@ -317,6 +326,7 @@ export default function App() {
               isUploading={isUploading}
               isPolling={isPolling}
               pageProgress={pageProgress}
+              statusMeta={statusMeta}
               canDownload={canDownload}
               statusColor={statusColor}
               onFileChange={handleFileChange}
@@ -342,6 +352,8 @@ export default function App() {
             <DashboardPage
               search={search}
               onSearchChange={setSearch}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
               jobs={filteredJobs}
               onOpenJob={(job) => {
                 setJobId(job.jobId);

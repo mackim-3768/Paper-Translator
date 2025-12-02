@@ -29,6 +29,7 @@ export function MainPage({
   isUploading,
   isPolling,
   pageProgress,
+  statusMeta,
   canDownload,
   statusColor,
   onFileChange,
@@ -39,6 +40,20 @@ export function MainPage({
   onDownload,
   onJobIdChange,
 }) {
+  let ttlLabel = null;
+  if (statusMeta && typeof statusMeta.expiresAt === 'number') {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const diffSec = statusMeta.expiresAt - nowSec;
+    const days = Math.ceil(diffSec / (24 * 60 * 60));
+    if (days < 0) {
+      ttlLabel = 'TTL 지남';
+    } else if (days === 0) {
+      ttlLabel = 'TTL: 오늘까지';
+    } else {
+      ttlLabel = `TTL: ${days}일 남음`;
+    }
+  }
+
   return (
     <Box mt={3}>
       <Stack spacing={3}>
@@ -135,6 +150,28 @@ export function MainPage({
                 </Typography>
               )}
             </Stack>
+            {statusMeta && (statusMeta.pageCount != null || ttlLabel || statusMeta.errorCode) && (
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                {statusMeta.pageCount != null && (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`총 ${statusMeta.pageCount}페이지`}
+                  />
+                )}
+                {ttlLabel && (
+                  <Chip size="small" variant="outlined" label={ttlLabel} />
+                )}
+                {statusMeta.errorCode && (
+                  <Chip
+                    size="small"
+                    color="error"
+                    variant="outlined"
+                    label={`에러: ${statusMeta.errorCode}`}
+                  />
+                )}
+              </Stack>
+            )}
             {pageProgress && (
               <Box mt={1}>
                 <Stack spacing={0.5}>
